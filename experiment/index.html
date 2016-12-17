@@ -9,10 +9,13 @@
   <link rel="stylesheet" href="../libs/qunit/qunit.css" media="screen">
   <script src="../libs/qunit/qunit.js"></script>
   <script src="../libs/q/q.js"></script>
+  <script src="../libs/aws/aws-sdk.min.js"></script>
+  <!-- Load AWS Credentials -->
+  <script src="../src/config.js"></script>
   <!-- Load local lib and tests. -->
   <script src="../src/utils.js"></script>
   <script src="../src/reqwin/index.js"></script>
-  <script src="../src/s3/upload.js"></script>
+  <script src="../src/s3/index.js"></script>
   <script src="reqwin.js"></script>
   <!-- Removing access to jQuery and $. But it'll still be available as _$, if
        you REALLY want to mess around with jQuery in the console. REMEMBER WE

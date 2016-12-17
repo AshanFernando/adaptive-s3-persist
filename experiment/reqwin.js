@@ -1,32 +1,20 @@
 (function($) {
-    /*
-      ======== A Handy Little QUnit Reference ========
-      http://api.qunitjs.com/
+    var EXPERIMENT = {},
+        reqwin = window.AP.reqWin,
+        utils = window.AP.utils,
+        persist = window.AP.persist;
 
-      Test methods:
-        module(name, {[setup][ ,teardown]})
-        test(name, callback)
-        expect(numberOfAssertions)
-        stop(increment)
-        start(decrement)
-      Test assertions:
-        ok(value, [message])
-        equal(actual, expected, [message])
-        notEqual(actual, expected, [message])
-        deepEqual(actual, expected, [message])
-        notDeepEqual(actual, expected, [message])
-        strictEqual(actual, expected, [message])
-        notStrictEqual(actual, expected, [message])
-        throws(block, [expected], [message])
-    */
-
-    module('Request Window', {});
+    module('Experiment with 1KB and 5 requests/second', {
+        setup: function() {
+            EXPERIMENT.json1024 = utils.fillPayload({
+                request_at: 0000000000,
+                request_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            }, 1024);
+        }
+    });
 
     asyncTest('Request Window Should Generate a Summary', function() {
         expect(2);
-
-        var reqwin = window.AP.reqWin;
-        var utils = window.AP.utils;
         var saveSimulation = function(requestId) {
             var deferred = Q.defer(),
                 json = utils.fillPayload({
