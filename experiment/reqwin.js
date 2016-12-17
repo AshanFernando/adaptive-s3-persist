@@ -6,30 +6,39 @@
 
     module('Experiment with 1KB and 5 requests/second', {
         setup: function() {
-            EXPERIMENT.json1024 = utils.fillPayload({
+            var reqObj = utils.fillPayload({
                 request_at: 0000000000,
                 request_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             }, 1024);
+            EXPERIMENT.upload = function(requestId) {
+                var deferred = Q.defer();
+                reqObj.request_id = requestId;
+                reqObj.request_at = utils.timestamp();
+                persist.upload(reqObj).then(function(resObj) {
+                    deferred.resolve(resObj);
+                })
+                return deferred.promise;
+            };
         }
     });
 
-    asyncTest('Request Window Should Generate a Summary', function() {
-        expect(2);
-        var saveSimulation = function(requestId) {
-            var deferred = Q.defer(),
-                json = utils.fillPayload({
-                    request_id: requestId,
-                    request_at: utils.timestamp()
-                }, 1024);
+    asyncTest('With Adaptive Window', function() {
+        var iterations = 50,
+            counts = {
+                responses: 0
+            };
+        expect(iterations);
+        for (var i = 0; i < iterations; i++) {
             setTimeout(function() {
-                deferred.resolve(json);
-            }, Math.random() * 1000);
-            return deferred.promise;
+                reqwin.adaptiveSave(EXPERIMENT.upload, false).then(function(logs) {
+                    counts.responses++;
+                    ok(true, 'Adaptive save operation: '+ counts.responses + ' with Data ' + JSON.stringify(logs.reverse()[0]));
+                    if (counts.responses === iterations) {
+                        start();
+                    }
+                });
+            }, 200);
         }
-        reqwin.adaptiveSave(saveSimulation).then(function(logs) {
-            ok(true, 'Adaptive save operates properly');
-            ok(true, JSON.stringify(logs));
-            start();
-        });
     });
+
 }(jQuery));

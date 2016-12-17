@@ -38,7 +38,7 @@
         },
         adjustRequestWindow = function(req) {
             var deferred = Q.defer();
-            if (REQ.average) {
+            if (REQ.average && !W.disabled) {
                 if ((req.windowRTT - REQ.average) > RTT.threshold) {
                     // presist window increases beyond threshold
                     W.size = W.size + W.increment;
@@ -79,10 +79,11 @@
         clone = function(obj) {
             return JSON.parse(JSON.stringify(obj));
         },
-        adaptiveSave = function(saveCallback) {
+        adaptiveSave = function(saveCallback, disabled) {
             var deferred = Q.defer();
             var requestedAt = utils.timestamp();
             REQ.count++;
+            W.disabled = disabled;
             if (!records.window.length) {
                 setTimeout(function() {
                     var requestId = utils.guid();
@@ -99,8 +100,10 @@
                     });
                 }, W.size);
             }
-            records.window.push({
-                requested_at: requestedAt
+            setTimeout(function() {
+                records.window.push({
+                    requested_at: requestedAt
+                });
             });
             return deferred.promise;
         };
