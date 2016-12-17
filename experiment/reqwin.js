@@ -22,25 +22,24 @@
 
     module('Request Window', {});
 
-    asyncTest('Request Window Should Generate a Summary', function(assert) {
+    asyncTest('Request Window Should Generate a Summary', function() {
         expect(2);
 
         var reqwin = window.AP.reqWin;
-        var iteration = 1;
+        var utils = window.AP.utils;
         var saveSimulation = function(requestId) {
-            var requestedAt = (new Date().getTime()),
-                deferred = Q.defer();
-            setTimeout(function() {
-                deferred.resolve({
+            var deferred = Q.defer(),
+                json = utils.fillPayload({
                     request_id: requestId,
-                    request_at: requestedAt,
-                    'data': 'Sample Data'
-                });
+                    request_at: utils.timestamp()
+                }, 1024);
+            setTimeout(function() {
+                deferred.resolve(json);
             }, Math.random() * 1000);
             return deferred.promise;
         }
         reqwin.adaptiveSave(saveSimulation).then(function(summary) {
-            ok(true, 'Iteration ' + iteration + ' adaptive save operates properly');
+            ok(true, 'Adaptive save operates properly');
             ok(true, JSON.stringify(summary));
             start();
         });

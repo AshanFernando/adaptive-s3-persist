@@ -22,11 +22,10 @@
 
     module('Request Window', {});
 
-    asyncTest('Request Window Should Generate a Summary', function(assert) {
+    asyncTest('Request Window Should Generate a Summary', function() {
         expect(2);
 
         var reqwin = window.AP.reqWin;
-        var iteration = 1;
         var saveSimulation = function(requestId) {
             var requestedAt = (new Date().getTime()),
                 deferred = Q.defer();
@@ -40,7 +39,7 @@
             return deferred.promise;
         }
         reqwin.adaptiveSave(saveSimulation).then(function(summary) {
-            ok(true, 'Iteration ' + iteration + ' adaptive save operates properly');
+            ok(true, 'Adaptive save operates properly');
             ok(true, JSON.stringify(summary));
             start();
         });

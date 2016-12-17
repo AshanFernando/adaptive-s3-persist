@@ -1,12 +1,11 @@
 (function() {
     window.AP = window.AP || {};
-    var request = {
+    var R = {
             count: 0,
             average: 0,
             time: 0
         },
-        utils = window.AP.utils,
-        log = [],
+        LOGS = [],
         W = {
             increment: 25,
             decrement: 25,
@@ -27,9 +26,10 @@
             max: 0,
             threshold: 50
         },
-        formatRecord = function(record, request, windowRTT) {
+        utils = window.AP.utils,
+        formatRecord = function(record, req, windowRTT) {
             var deferred = Q.defer(),
-                sendTime = request.requested_at,
+                sendTime = req.requested_at,
                 receivedTime = utils.timestamp();
             deferred.resolve({
                 windowRTT: windowRTT,
@@ -45,20 +45,20 @@
         },
         adjustRequestWindow = function(req) {
             var deferred = Q.defer()
-            if (request.average) {
-                if ((req.windowRTT - request.average) > RTT.threshold) {
+            if (R.average) {
+                if ((req.windowRTT - R.average) > RTT.threshold) {
                     // presist window increases beyond threshold
                     W.size = W.size + W.increment;
                     W.max = W.size > W.max ? W.size : W.max;
-                } else if ((request.average - req.windowRTT) > RTT.threshold) {
+                } else if ((R.average - req.windowRTT) > RTT.threshold) {
                     W.size = W.size - W.decrement;
                     W.size = W.size > 0 ? W.size : 0;
                 }
             }
-            log.push({
+            LOGS.push({
                 RTT: RTT,
                 W: W,
-                Req: request
+                R: R
             });
             var summary = {
                 average_obj_size: averageTransferSize(),
@@ -66,7 +66,7 @@
                 min_rtt: RTT.min,
                 max_rtt: RTT.max,
                 average_rtt: RTT.average,
-                average_obj_rtt: request.average,
+                average_obj_rtt: R.average,
                 max_w_size: W.max,
             };
             deferred.resolve(summary);
@@ -74,8 +74,8 @@
         },
         updateVariables = function(record) {
             var deferred = Q.defer();
-            request.average = averageServiceTime();
-            request.time = request.time + record.requestRTT;
+            R.average = averageServiceTime();
+            R.time = R.time + record.requestRTT;
             RTT.average = averageRTT();
             RTT.min = (record.requestRTT > RTT.min) && RTT.min ? RTT.min : record.requestRTT;
             RTT.max = (record.requestRTT > RTT.max) ? record.requestRTT : RTT.max;
@@ -86,7 +86,7 @@
             return W.count > 0 ? Math.round(W.time / W.count) : 0;
         },
         averageServiceTime = function() {
-            return request.count ? Math.round(request.time / request.count) : 0;
+            return R.count ? Math.round(R.time / R.count) : 0;
         },
         setInitRTT = function(loadTime) {
             RTT.start = loadTime;
@@ -97,20 +97,20 @@
         adaptiveSave = function(saveCallback) {
             var deferred = Q.defer();
             var requestedAt = utils.timestamp();
-            request.count++;
+            R.count++;
             if (!records.window.length) {
                 setTimeout(function() {
                     var requestId = utils.guid();
                     records.saving[requestId] = clone(records.window);
                     records.saving[requestId].request_at = utils.timestamp();
                     records.window.length = 0;
-                    saveCallback(requestId).then(function(store) {
+                    saveCallback(requestId).then(function(obj) {
                         W.count++;
-                        records.total = records.total + transferObjectSize(store);
-                        var windowRTT = (utils.timestamp() - records.saving[store.request_id].request_at);
+                        records.total = records.total + transferObjectSize(obj);
+                        var windowRTT = (utils.timestamp() - records.saving[obj.request_id].request_at);
                         W.time = W.time + windowRTT;
-                        records.saving[store.request_id].forEach(function(record) {
-                            formatRecord(store, record, windowRTT).then(updateVariables).then(adjustRequestWindow).then(deferred.resolve);
+                        records.saving[obj.request_id].forEach(function(record) {
+                            formatRecord(obj, record, windowRTT).then(updateVariables).then(adjustRequestWindow).then(deferred.resolve);
                         });
                     });
                 }, W.size);
