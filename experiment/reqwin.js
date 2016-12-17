@@ -38,9 +38,9 @@
             }, Math.random() * 1000);
             return deferred.promise;
         }
-        reqwin.adaptiveSave(saveSimulation).then(function(summary) {
+        reqwin.adaptiveSave(saveSimulation).then(function(logs) {
             ok(true, 'Adaptive save operates properly');
-            ok(true, JSON.stringify(summary));
+            ok(true, JSON.stringify(logs));
             start();
         });
     });
