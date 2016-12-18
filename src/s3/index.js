@@ -1,7 +1,7 @@
 (function(W, $) {
     W.AP = W.AP || {};
     AWS.config.update(W.AP.AWS_CREDENTIALS);
-    var records = {};
+    var recordsLog = {};
 
     AP.persist = {
         upload: function(obj) {
@@ -10,11 +10,12 @@
                 params = {
                     Bucket: 'persistant-experiment-us-east-1',
                     Key: obj.request_id,
+                    StorageClass: 'REDUCED_REDUNDANCY',
                     Body: JSON.stringify(obj)
                 };
-            records[obj.request_id] = obj;
+            recordsLog[obj.request_id] = W.AP.utils.clone(obj);
             s3.upload(params, function(err, res) {
-                deferred.resolve(records[res.key]);
+                deferred.resolve(recordsLog[res.key]);
             });
             return deferred.promise;
         }

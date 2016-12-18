@@ -1,4 +1,4 @@
-(function() {
+(function(window, _) {
     window.AP = window.AP || {};
     var REQ = {
             count: 0,
@@ -22,22 +22,21 @@
             threshold: 50
         },
         records = {
+            pendingDelayedExecutions: false,
+            lastRequestedAt: 0,
             window: [],
             saving: {}
         },
         utils = window.AP.utils,
         formatRecord = function(record, req, windowRTT) {
-            var deferred = Q.defer(),
-                sendTime = req.requested_at,
+            var sendTime = req.request_at,
                 receivedTime = utils.timestamp();
-            deferred.resolve({
+            return {
                 windowRTT: windowRTT,
                 requestRTT: receivedTime - sendTime + W.size
-            });
-            return deferred.promise;
+            };
         },
         adjustRequestWindow = function(req) {
-            var deferred = Q.defer();
             if (REQ.average && !W.disabled) {
                 if ((req.windowRTT - REQ.average) > RTT.threshold) {
                     // presist window increases beyond threshold
@@ -53,19 +52,14 @@
                 W: W,
                 REQ: REQ
             };
-            LOGS.push(log);
-            deferred.resolve(LOGS);
-            return deferred.promise;
+            LOGS.push(utils.clone(log));
         },
         updateVariables = function(record) {
-            var deferred = Q.defer();
-            REQ.average = averageServiceTime();
             REQ.time = REQ.time + record.requestRTT;
+            REQ.average = averageServiceTime();
             RTT.average = averageRTT();
             RTT.min = (record.requestRTT > RTT.min) && RTT.min ? RTT.min : record.requestRTT;
             RTT.max = (record.requestRTT > RTT.max) ? record.requestRTT : RTT.max;
-            deferred.resolve(record);
-            return deferred.promise;
         },
         averageRTT = function() {
             return W.count > 0 ? Math.round(W.time / W.count) : 0;
@@ -76,40 +70,63 @@
         setInitRTT = function(loadTime) {
             RTT.start = loadTime;
         },
-        clone = function(obj) {
-            return JSON.parse(JSON.stringify(obj));
-        },
-        adaptiveSave = function(saveCallback, disabled) {
-            var deferred = Q.defer();
-            var requestedAt = utils.timestamp();
+        adaptiveWindow = function(saveCallback) {
+            var deferred = Q.defer(),
+                currentRequestAt = utils.timestamp(),
+                waitingWindow;
+            records.lastRequestedAt = records.lastRequestedAt || utils.timestamp();
+            waitingWindow = currentRequestAt - records.lastRequestedAt
             REQ.count++;
-            W.disabled = disabled;
-            if (!records.window.length) {
-                setTimeout(function() {
-                    var requestId = utils.guid();
-                    records.saving[requestId] = clone(records.window);
-                    records.saving[requestId].request_at = utils.timestamp();
-                    records.window.length = 0;
-                    saveCallback(requestId).then(function(obj) {
-                        W.count++;
-                        var windowRTT = (utils.timestamp() - records.saving[obj.request_id].request_at);
-                        W.time = W.time + windowRTT;
-                        records.saving[obj.request_id].forEach(function(record) {
-                            formatRecord(obj, record, windowRTT).then(updateVariables).then(adjustRequestWindow).then(deferred.resolve);
-                        });
-                    });
-                }, W.size);
-            }
-            setTimeout(function() {
-                records.window.push({
-                    requested_at: requestedAt
-                });
+
+            console.log("current request at: ", currentRequestAt);
+            console.log("last requested at: ", records.lastRequestedAt);
+            console.log("waiting window: ", waitingWindow);
+            console.log("request count: ", REQ.count);
+
+            records.window.push({
+                request_at: currentRequestAt
             });
+
+            // 1) Is this request within the buffering window? if YES store it untill the window time gap passed
+            // 2) If not, immediately call the save callback
+
+            var executeRequest = function() {
+                var requestId = utils.guid();
+                records.lastRequestedAt = utils.timestamp();
+                records.saving[requestId] = utils.clone(records.window);
+                records.saving[requestId].request_at = records.lastRequestedAt;
+                records.window.length = 0;
+                saveCallback(requestId, records.lastRequestedAt).then(function(obj) {
+                    W.count++;
+                    var windowRTT = (utils.timestamp() - records.saving[obj.request_id].request_at);
+
+                    W.time = W.time + windowRTT;
+                    records.saving[obj.request_id].forEach(function(record) {
+                        var result = formatRecord(obj, record, windowRTT);
+                        updateVariables(result);
+                        adjustRequestWindow(result);
+                    });
+                    deferred.resolve(LOGS);
+                });
+            };
+
+            if (!W.size || waitingWindow >= W.size) {
+                console.log("Immediate Request Execution");
+                executeRequest();
+            } else if (!records.pendingDelayedExecutions) {
+                records.pendingDelayedExecutions = true;
+                console.log("Delayed Request Execution: ", W.size - waitingWindow);
+                _.delay(function() {
+                    records.pendingDelayedExecutions = false;
+                    executeRequest();
+                }, (W.size - waitingWindow));
+            }
+
             return deferred.promise;
         };
 
     window.AP.reqWin = {
-        adaptiveSave: adaptiveSave,
+        adaptiveWindow: adaptiveWindow,
         setInitRTT: setInitRTT
     };
-})(window);
+})(window, _);

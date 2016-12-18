@@ -3,7 +3,7 @@
     module('Request Window', {});
 
     asyncTest('Request Window Should Generate a Summary', function() {
-        expect(2);
+        expect(1);
 
         var reqwin = window.AP.reqWin,
             utils = window.AP.utils;
@@ -17,9 +17,8 @@
             }, Math.random() * 1000);
             return deferred.promise;
         }
-        reqwin.adaptiveSave(saveSimulation).then(function(logs) {
-            ok(true, 'Adaptive save operates properly');
-            ok(true, JSON.stringify(logs));
+        reqwin.adaptiveWindow(saveSimulation).then(function(logs) {
+            ok(true, 'Adaptive save operation: ' + JSON.stringify(logs));
             start();
         });
     });

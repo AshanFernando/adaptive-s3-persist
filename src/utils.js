@@ -37,8 +37,13 @@
         return obj;
     };
 
+    clone = function(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    };
+
     window.AP.utils = {
         browser: browser,
+        clone: clone,
         guid: guid,
         fillPayload: fillPayload,
         timestamp: timestamp
