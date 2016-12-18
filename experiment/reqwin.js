@@ -24,17 +24,20 @@
     var formatLogs = function(logs) {
         return _.map(logs, function(log) {
             return {
-                'object changes': log.REQ.count,
-                'updated changes': log.W.count,
-                'serve average': log.REQ.average,
-                'round trip average': log.RTT.average,
+                'obj requests': log.REQ.total,
+                'obj changes reflected': log.REQ.served,
+                'obj persisted': log.W.count,
+                'obj served RTT': log.REQ.requestRTT,
+                'obj persisted RTT': log.REQ.windowRTT,
+                'serve time av': log.REQ.average,
+                'perist time av': log.RTT.average,
                 'window size': log.W.size
             }
         })
     }
 
     asyncTest('With Adaptive Window', function() {
-        var iterations = 20,
+        var iterations = 50,
             uploadLogs;
 
         var refreshIntervalId = setInterval(function() {
@@ -45,7 +48,7 @@
             if (iterations === 0) {
                 clearInterval(refreshIntervalId);
             }
-        }, 100);
+        }, 50);
 
         expect(1);
         setTimeout(function() {
