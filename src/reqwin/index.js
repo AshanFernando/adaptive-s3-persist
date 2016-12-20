@@ -19,7 +19,6 @@
             disabled: false
         },
         RTT = {
-            start: 0,
             average: 0,
             min: 0,
             max: 0,
@@ -34,19 +33,18 @@
         utils = window.AP.utils,
 
         predictNextRTT = function(req) {
-            if(REQ.log.length < 4){
-              return req.requestRTT;
+            if (REQ.log.length < 3) {
+                return req.requestRTT;
             };
             var result, reqLogs = utils.clone(REQ.log);
             reqLogs.push([reqLogs.length, null]);
-            result = regression('polynomial', reqLogs, 10);
-            console.log(result.string)
+            result = regression('polynomial', reqLogs, 3);
             return Math.abs(Math.round(_.last(_.last(result.points))));
         },
 
         adjustRequestWindow = function(req) {
             if (!W.disabled) {
-                if (RTT.nextRTT - req.requestRTT> 0) {
+                if (RTT.nextRTT - req.requestRTT > RTT.threshold) {
                     W.size = W.size + W.increment;
                 } else {
                     W.size = W.size - W.decrement;
@@ -75,10 +73,6 @@
             log.REQ.requestRTT = req.requestRTT;
             log.REQ.serveTime = req.serveTime;
             LOGS.push(log);
-        },
-
-        setInitRTT = function(loadTime) {
-            RTT.start = loadTime;
         },
 
         adaptiveWindow = function(saveCallback) {
@@ -131,7 +125,6 @@
     window.AP.reqWin = {
         W: W,
         RTT: RTT,
-        adaptiveWindow: adaptiveWindow,
-        setInitRTT: setInitRTT
+        adaptiveWindow: adaptiveWindow
     };
 })(window, _);
