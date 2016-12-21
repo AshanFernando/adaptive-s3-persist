@@ -104,7 +104,7 @@
         window.AP.reqWin.W.increment = 100;
         window.AP.reqWin.RTT.threshold = 200;
 
-        iterations = 500;
+        iterations = 50;
         frequency = 100;
 
         var refreshIntervalId = setInterval(function() {
@@ -122,7 +122,7 @@
             var logs = JSONToCSVConvertor(formatLogsJSON(uploadLogs));
             ok(true, JSON.stringify(formatLogsJSON(uploadLogs)));
             start();
-        }, 180000);
+        }, 50000);
     });
 
 }(jQuery));
