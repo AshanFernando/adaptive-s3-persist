@@ -1,25 +1,25 @@
 (function($) {
-    var EXPERIMENT = {},
+    var EXPERIMENT = {
+            results: {
+                logs: []
+            }
+        },
         reqwin = window.AP.reqWin,
         utils = window.AP.utils,
         persist = window.AP.persist;
 
-    module('Experiment Object Peristense', {
-        setup: function() {
-            var reqObj = utils.fillPayload({
-                request_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            }, 1024);
-            EXPERIMENT.upload = function(requestId, requestedAt) {
-                var deferred = Q.defer();
-                reqObj.request_id = requestId;
-                reqObj.request_at = requestedAt;
-                persist.upload(reqObj).then(function(resObj) {
-                    deferred.resolve(resObj);
-                })
-                return deferred.promise;
-            };
-        }
-    });
+    var reqObj = utils.fillPayload({
+        request_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    }, 1024);
+    EXPERIMENT.upload = function(requestId, requestedAt) {
+        var deferred = Q.defer();
+        reqObj.request_id = requestId;
+        reqObj.request_at = requestedAt;
+        persist.upload(reqObj).then(function(resObj) {
+            deferred.resolve(resObj);
+        })
+        return deferred.promise;
+    };
 
     var formatLogsJSON = function(logs) {
         return _.map(logs, function(log) {
@@ -31,7 +31,7 @@
                 'req RTT': log.REQ.requestRTT,
                 'next RTT': log.RTT.nextRTT,
                 'serve av': log.REQ.average,
-                'perist av': log.RTT.average,
+                'persist av': log.RTT.average,
                 'window size': log.W.size
             }
         })
@@ -94,35 +94,73 @@
         document.body.removeChild(link);
     }
 
-    asyncTest('Executing experiment', function() {
-        var iterations, frequency,
-            uploadLogs;
+    var init = function() {
+        var params = window.AP.reqWin.init();
+        params.W.disabled = true;
+        params.W.size = 0;
+        params.W.decrement = 50;
+        params.W.increment = 100;
+        params.RTT.threshold = 200;
+    };
 
-        window.AP.reqWin.W.disabled = false;
-        window.AP.reqWin.W.size = 100;
-        window.AP.reqWin.W.decrement = 50;
-        window.AP.reqWin.W.increment = 100;
-        window.AP.reqWin.RTT.threshold = 200;
+    var runExperiment = function(callback) {
+        var iterations, interval, expectedResponses;
 
         iterations = 50;
-        frequency = 100;
+        interval = 100;
+        expectedResponses = iterations;
 
         var refreshIntervalId = setInterval(function() {
             iterations--;
-            reqwin.adaptiveWindow(EXPERIMENT.upload).then(function(logs) {
-                uploadLogs = logs;
-            })
             if (iterations === 0) {
                 clearInterval(refreshIntervalId);
             }
-        }, frequency);
+            reqwin.adaptiveWindow(EXPERIMENT.upload).then(function(logs) {
+                expectedResponses --;
+                if (expectedResponses  === 0) {
+                    callback(logs);
+                }
+            })
+        }, interval);
+    };
 
-        expect(1);
-        _.delay(function() {
-            var logs = JSONToCSVConvertor(formatLogsJSON(uploadLogs));
-            ok(true, JSON.stringify(formatLogsJSON(uploadLogs)));
-            start();
-        }, 50000);
-    });
+    var averageProp = function(index, prop) {
+        return Math.round((EXPERIMENT.results.logs1[index][prop] + EXPERIMENT.results.logs2[index][prop] + EXPERIMENT.results.logs3[index][prop]) / 3);
+    };
+
+    init();
+    runExperiment(function(logs1) {
+        //interation 1
+        EXPERIMENT.results.logs1 = utils.clone(formatLogsJSON(logs1));
+        init();
+        runExperiment(function(logs2) {
+            //interation 2
+            EXPERIMENT.results.logs2 = utils.clone(formatLogsJSON(logs2));
+            init();
+            runExperiment(function(logs3) {
+                //interation 3
+                EXPERIMENT.results.logs3 = utils.clone(formatLogsJSON(logs3));
+                console.log(EXPERIMENT.results);
+                for (i = 0; i < EXPERIMENT.results.logs1.length; i++) {
+                    EXPERIMENT.results.logs.push({
+                        'requests': averageProp(i, 'requests'),
+                        'served': averageProp(i, 'served'),
+                        'persisted': averageProp(i, 'persisted'),
+                        'serve RTT': averageProp(i, 'serve RTT'),
+                        'req RTT': averageProp(i, 'req RTT'),
+                        'next RTT': averageProp(i, 'next RTT'),
+                        'serve av': averageProp(i, 'serve av'),
+                        'persist av': averageProp(i, 'persist av'),
+                        'window size': averageProp(i, 'window size')
+                    });
+                }
+                console.log(EXPERIMENT.results);
+                JSONToCSVConvertor(EXPERIMENT.results.logs);
+            });
+        });
+    })
+
+
+
 
 }(jQuery));

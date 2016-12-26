@@ -5,7 +5,7 @@ var webserver = require('gulp-webserver');
 gulp.task('experiment', function() {
     gulp.src('.')
         .pipe(webserver({
-            livereload: true,
+            livereload: false,
             open: '/experiment/index.html'
         }));
 });

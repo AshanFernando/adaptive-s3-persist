@@ -1,37 +1,42 @@
 (function(window, _) {
     window.AP = window.AP || {};
-    var REQ = {
-            total: 0,
-            served: 0,
-            average: 0,
-            time: 0,
-            log: []
-        },
-        LOGS = [],
-        W = {
-            increment: 0,
-            decrement: 0,
-            factor: 100,
-            count: 0,
-            time: 0,
-            size: 0,
-            max: 0,
-            disabled: false
-        },
-        RTT = {
-            average: 0,
-            min: 0,
-            max: 0,
-            threshold: 0
-        },
-        records = {
-            pendingDelayedExecutions: false,
-            lastRequestedAt: 0,
-            window: [],
-            saving: {}
-        },
+    var REQ, LOGS, W, RTT, records,
         utils = window.AP.utils,
-
+        init = function() {
+            REQ = {
+                total: 0,
+                served: 0,
+                average: 0,
+                time: 0,
+                log: []
+            };
+            LOGS = [];
+            W = {
+                increment: 0,
+                decrement: 0,
+                count: 0,
+                time: 0,
+                size: 0,
+                max: 0,
+                disabled: false
+            };
+            RTT = {
+                average: 0,
+                min: 0,
+                max: 0,
+                threshold: 0
+            };
+            records = {
+                pendingDelayedExecutions: false,
+                lastRequestedAt: 0,
+                window: [],
+                saving: {}
+            };
+            return {
+                W: W,
+                RTT: RTT
+            };
+        },
         predictNextRTT = function(req) {
             if (REQ.log.length < 3) {
                 return req.requestRTT;
@@ -123,8 +128,7 @@
         };
 
     window.AP.reqWin = {
-        W: W,
-        RTT: RTT,
+        init: init,
         adaptiveWindow: adaptiveWindow
     };
 })(window, _);
