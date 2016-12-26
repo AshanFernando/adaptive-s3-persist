@@ -2,7 +2,8 @@
     var EXPERIMENT = {
             results: {
                 logs: []
-            }
+            },
+            requests: 0
         },
         reqwin = window.AP.reqWin,
         utils = window.AP.utils,
@@ -13,6 +14,7 @@
     }, 1024);
     EXPERIMENT.upload = function(requestId, requestedAt) {
         var deferred = Q.defer();
+        EXPERIMENT.requests++;
         reqObj.request_id = requestId;
         reqObj.request_at = requestedAt;
         persist.upload(reqObj).then(function(resObj) {
@@ -96,19 +98,18 @@
 
     var init = function() {
         var params = window.AP.reqWin.init();
+        EXPERIMENT.requests = 0;
         params.W.disabled = true;
-        params.W.size = 0;
+        params.W.size = 100;
         params.W.decrement = 50;
         params.W.increment = 100;
         params.RTT.threshold = 200;
     };
 
     var runExperiment = function(callback) {
-        var iterations, interval, expectedResponses;
-
-        iterations = 50;
+        var iterations, interval, responses = 0,
+            iterations = 50;
         interval = 100;
-        expectedResponses = iterations;
 
         var refreshIntervalId = setInterval(function() {
             iterations--;
@@ -116,8 +117,8 @@
                 clearInterval(refreshIntervalId);
             }
             reqwin.adaptiveWindow(EXPERIMENT.upload).then(function(logs) {
-                expectedResponses --;
-                if (expectedResponses  === 0) {
+                responses++;
+                if (responses === EXPERIMENT.requests) {
                     callback(logs);
                 }
             })
