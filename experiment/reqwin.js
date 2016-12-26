@@ -119,7 +119,9 @@
             reqwin.adaptiveWindow(EXPERIMENT.upload).then(function(logs) {
                 responses++;
                 if (responses === EXPERIMENT.requests) {
-                    callback(logs);
+                    _.delay(function() {
+                        callback(logs);
+                    }, 5000);
                 }
             })
         }, interval);
